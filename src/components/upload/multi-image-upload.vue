@@ -4,11 +4,11 @@
             <!-- 照片墙展示区域 -->
             <div class="image-wall">
                 <!-- 已上传的图片 -->
-                <div v-for="(fileItem, index) in fileList" :key="fileItem.uid || index" 
+                <div v-for="(fileItem, index) in fileList" :key="fileItem.uid || index"
                      class="image-item"
                      :style="{ width: typeof width === 'number' ? width + 'px' : width, height: typeof height === 'number' ? height + 'px' : height }">
                     <div class="upload-list-picture custom-upload-avatar">
-                        <img :src="handleUrl(fileItem.url)" 
+                        <img :src="handleUrl(fileItem.url)"
                              :style="{ width: typeof width === 'number' ? width + 'px' : width, height: typeof height === 'number' ? height + 'px' : height }" />
                         <div class="upload-list-picture-mask">
                             <div class="action-buttons">
@@ -24,7 +24,7 @@
                                 </a-tooltip>
                             </div>
                         </div>
-                        <a-progress v-if="fileItem.status === 'uploading' && fileItem.percent < 100" 
+                        <a-progress v-if="fileItem.status === 'uploading' && fileItem.percent < 100"
                                    :percent="fileItem.percent"
                                    type="circle" size="mini" :style="{
                                        position: 'absolute',
@@ -36,18 +36,18 @@
                 </div>
 
                 <!-- 上传按钮 -->
-                <a-upload :action="uploadUrl" 
-                         :fileList="[]" 
-                         :show-file-list="false" 
-                         @change="onChange" 
+                <a-upload :action="uploadUrl"
+                         :fileList="[]"
+                         :show-file-list="false"
+                         @change="onChange"
                          :accept="accept"
                          :multiple="true"
                          :limit="maxCount"
-                         @progress="onProgress" 
+                         @progress="onProgress"
                          :custom-request="handleUpload"
                          :disabled="fileList.length >= maxCount">
                     <template #upload-button>
-                        <div class="upload-button" 
+                        <div class="upload-button"
                              :style="{ width: typeof width === 'number' ? width + 'px' : width, height: typeof height === 'number' ? height + 'px' : height }"
                              :class="{ 'upload-disabled': fileList.length >= maxCount }">
                             <div class="arco-upload-picture-card">
@@ -62,23 +62,44 @@
                         </div>
                     </template>
                 </a-upload>
+
+                <!-- 选择按钮 -->
+                <div class="upload-button"
+                     :style="{ width: typeof width === 'number' ? width + 'px' : width, height: typeof height === 'number' ? height + 'px' : height }"
+                     :class="{ 'upload-disabled': fileList.length >= maxCount }"
+                     @click="showSelector = true">
+                    <div class="arco-upload-picture-card">
+                        <div class="arco-upload-picture-card-text">
+                            <icon-folder />
+                            <div style="font-weight: 600;font-size: 12px;">选择图片</div>
+                            <div v-if="maxCount" style="font-size: 10px;color: var(--color-text-3);margin-top: 4px;">
+                                {{ fileList.length }}/{{ maxCount }}
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </div>
         </a-space>
 
         <!-- 图片预览模态框 -->
-        <a-modal v-model:visible="previewVisible" :footer="false" :closable="false" 
-                 :style="{ maxWidth: '80vw', maxHeight: '80vh' }">
-            <img :src="previewImage" style="width: 100%; height: auto; max-height: 70vh; object-fit: contain;" />
-        </a-modal>
+        <a-image-preview v-model:visible="previewVisible" :src="previewImage" />
+        <!-- 附件选择器 -->
+        <affix-selector
+            v-model:visible="showSelector"
+            :multiple="true"
+            @confirm="handleAffixSelect"
+            @close="handleSelectorClose"
+        />
     </div>
 </template>
 
 <script setup lang="ts">
 import { ref, watch, computed } from 'vue';
-import { IconPlus, IconEye, IconDelete } from '@arco-design/web-vue/es/icon';
+import { IconPlus, IconEye, IconDelete, IconFolder } from '@arco-design/web-vue/es/icon';
 import { uploadAffixAPI } from '@/api/file';
 import { Message } from '@arco-design/web-vue';
 import { handleUrl } from "@/utils/app";
+import AffixSelector from './affix-selector.vue';
 
 // 定义组件属性
 const props = defineProps({
@@ -113,6 +134,7 @@ const emit = defineEmits(['update:modelValue']);
 
 // 文件列表
 const fileList = ref<any[]>([]);
+const showSelector = ref(false);
 
 // 预览相关
 const previewVisible = ref(false);
@@ -234,6 +256,43 @@ const handlePreview = (fileItem: any) => {
     previewImage.value = handleUrl(fileItem.url);
     previewVisible.value = true;
 };
+
+// 处理附件选择
+const handleAffixSelect = (urls: string[]) => {
+    if (urls.length === 0) return;
+    
+    // 检查是否超过最大数量限制
+    const availableSlots = props.maxCount - fileList.value.length;
+    if (availableSlots <= 0) {
+        Message.warning(`最多只能选择${props.maxCount}张图片`);
+        return;
+    }
+    
+    // 限制选择数量不超过可用槽位
+    const urlsToAdd = urls.slice(0, availableSlots);
+    
+    // 添加选中的图片到文件列表
+    urlsToAdd.forEach((url, index) => {
+        fileList.value.push({
+            uid: `selected-${Date.now()}-${index}`,
+            url: url,
+            status: 'done'
+        });
+    });
+    
+    // 更新父组件的URL数组
+    const allUrls = fileList.value
+        .filter(file => file.status === 'done' && file.url)
+        .map(file => file.url);
+    emit('update:modelValue', allUrls);
+    
+    Message.success(`成功选择${urlsToAdd.length}张图片`);
+};
+
+// 处理选择器关闭
+const handleSelectorClose = () => {
+    showSelector.value = false;
+};
 </script>
 
 <style scoped>
@@ -341,5 +400,18 @@ const handlePreview = (fileItem: any) => {
 .arco-upload-picture-card:hover:not(.upload-disabled .arco-upload-picture-card) {
     border-color: var(--color-primary);
     background-color: var(--color-primary-light-1);
+}
+.preview-container {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    width: 100%;
+}
+
+.preview-image {
+    max-width: 90vw;
+    max-height: 90vh;
+    object-fit: contain;
 }
 </style>

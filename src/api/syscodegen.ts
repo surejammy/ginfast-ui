@@ -50,6 +50,7 @@ export type PreviewCodeResponse = BaseResult<{
       "init": string,
       "frontendApi": string,
       "frontendStore": string,
+      "frontendHooks": string,
       "frontendView": string
   };
 }>

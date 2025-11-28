@@ -138,6 +138,10 @@
                         <a-button v-if="previewData.frontendApi" :type="activeTab === 'frontendApi' ? 'primary' : 'secondary'" size="small" @click="activeTab = 'frontendApi'">
                             Frontend API
                         </a-button>
+                        <a-button v-if="previewData.frontendHooks" :type="activeTab === 'frontendHooks' ? 'primary' : 'secondary'" size="small" @click="activeTab = 'frontendHooks'">
+                            Frontend Hooks
+                        </a-button>
+
                         <a-button v-if="previewData.frontendStore" :type="activeTab === 'frontendStore' ? 'primary' : 'secondary'" size="small" @click="activeTab = 'frontendStore'">
                             Frontend Store
                         </a-button>
@@ -236,6 +240,19 @@
                             </div>
                             <div class="code-container">
                                 <s-code-view :code-json="previewData.frontendApi" type="javascript" />
+                            </div>
+                        </div>
+                        
+                        <div v-if="activeTab === 'frontendHooks' && previewData.frontendHooks" class="code-wrapper">
+                            <div class="code-header">
+                                <a-button type="primary" size="small" @click="copyCode('frontendHooks')">
+                                    <template #icon><icon-copy /></template>
+                                    <span>复制代码</span>
+                                </a-button>
+                                <div class="code-info">前端 Hooks 文件</div>
+                            </div>
+                            <div class="code-container">
+                                <s-code-view :code-json="previewData.frontendHooks" type="javascript" />
                             </div>
                         </div>
                         
@@ -513,6 +530,7 @@ const previewData = ref<{
     init?: string,
     frontendApi?: string,
     frontendStore?: string,
+    frontendHooks?: string,
     frontendView?: string
 }>({
     model: "",
@@ -523,6 +541,7 @@ const previewData = ref<{
     init: "",
     frontendApi: "",
     frontendStore: "",
+    frontendHooks: "",
     frontendView: ""
 });
 
@@ -547,6 +566,7 @@ const onPreview = async (record: SysGenItem) => {
         init: "",
         frontendApi: "",
         frontendStore: "",
+        frontendHooks: "",
         frontendView: ""
     };
     try {
@@ -563,6 +583,7 @@ const onPreview = async (record: SysGenItem) => {
                 init: formatCode(preview.init),
                 frontendApi: formatCode(preview.frontendApi),
                 frontendStore: formatCode(preview.frontendStore),
+                frontendHooks: formatCode(preview.frontendHooks),
                 frontendView: formatCode(preview.frontendView)
             };
         }

@@ -1,4 +1,3 @@
-import _ from "lodash"
 import { Message, Modal } from "@arco-design/web-vue";
 
 // 从 localStorage 获取项

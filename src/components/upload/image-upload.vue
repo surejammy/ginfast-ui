@@ -1,55 +1,80 @@
 <template>
-    <a-space direction="vertical" :style="{ width: '100%' }">
-        <a-upload :action="uploadUrl" :fileList="fileList" :show-file-list="false" @change="onChange" :accept="accept"
-            @progress="onProgress" :custom-request="handleUpload" :disabled="disabled">
-            <template #upload-button>
-                <div :class="`arco-upload-list-item${file && file.status === 'error' ? ' arco-upload-list-item-error' : ''}`">
-                    <div class="arco-upload-list-picture custom-upload-avatar" v-if="file && file.url"
-                        :style="{ width: typeof width === 'number' ? width + 'px' : width, height: typeof height === 'number' ? height + 'px' : height }">
-                        <img :src="handleUrl(file.url)"
-                            :style="{ width: typeof width === 'number' ? width + 'px' : width, height: typeof height === 'number' ? height + 'px' : height }" />
-                        <div class="arco-upload-list-picture-mask">
-                            <div class="action-buttons">
-                                <a-tooltip content="更换">
-                                    <a-button type="text" size="mini">
-                                        <IconEdit />
-                                    </a-button>
-                                </a-tooltip>
-                                <a-tooltip content="删除">
-                                    <a-button type="text" size="mini" @click.stop="handleRemove" status="danger">
-                                        <IconDelete />
-                                    </a-button>
-                                </a-tooltip>
+    <div class="image-upload">
+        <div class="upload-container">
+            <a-upload :action="uploadUrl" :fileList="fileList" :show-file-list="false" @change="onChange" :accept="accept"
+                @progress="onProgress" :custom-request="handleUpload" :disabled="disabled">
+                <template #upload-button>
+                    <div :class="`arco-upload-list-item${file && file.status === 'error' ? ' arco-upload-list-item-error' : ''}`">
+                        <div class="arco-upload-list-picture custom-upload-avatar" v-if="file && file.url"
+                            :style="{ width: typeof width === 'number' ? width + 'px' : width, height: typeof height === 'number' ? height + 'px' : height }">
+                            <img :src="handleUrl(file.url)"
+                                :style="{ width: typeof width === 'number' ? width + 'px' : width, height: typeof height === 'number' ? height + 'px' : height }" />
+                            <div class="arco-upload-list-picture-mask">
+                                <div class="action-buttons">
+                                    <a-tooltip content="预览">
+                                        <a-button type="text" size="mini" @click.stop="handlePreview">
+                                            <icon-eye />
+                                        </a-button>
+                                    </a-tooltip>
+                                    <a-tooltip content="删除">
+                                        <a-button type="text" size="mini" @click.stop="handleRemove" status="danger">
+                                            <IconDelete />
+                                        </a-button>
+                                    </a-tooltip>
+                                </div>
+                            </div>
+                            <a-progress v-if="file.status === 'uploading' && file.percent < 100" :percent="file.percent"
+                                type="circle" size="mini" :style="{
+                                    position: 'absolute',
+                                    left: '50%',
+                                    top: '50%',
+                                    transform: 'translateX(-50%) translateY(-50%)',
+                                }" />
+                        </div>
+                        <div class="arco-upload-picture-card" v-else
+                            :style="{ width: typeof width === 'number' ? width + 'px' : width, height: typeof height === 'number' ? height + 'px' : height }"
+                            :class="{ 'upload-disabled': disabled }">
+                            <div class="arco-upload-picture-card-text">
+                                <IconPlus />
+                                <div style="font-weight: 600;font-size: 12px;">{{ title }}</div>
                             </div>
                         </div>
-                        <a-progress v-if="file.status === 'uploading' && file.percent < 100" :percent="file.percent"
-                            type="circle" size="mini" :style="{
-                                position: 'absolute',
-                                left: '50%',
-                                top: '50%',
-                                transform: 'translateX(-50%) translateY(-50%)',
-                            }" />
                     </div>
-                    <div class="arco-upload-picture-card" v-else
-                        :style="{ width: typeof width === 'number' ? width + 'px' : width, height: typeof height === 'number' ? height + 'px' : height }"
-                        :class="{ 'upload-disabled': disabled }">
-                        <div class="arco-upload-picture-card-text">
-                            <IconPlus />
-                            <div style="font-weight: 600;font-size: 12px;">{{ title }}</div>
-                        </div>
+                </template>
+            </a-upload>
+
+            <!-- 选择按钮（右侧） -->
+            <div class="select-button"
+                 :style="{ width: typeof width === 'number' ? width + 'px' : width, height: typeof height === 'number' ? height + 'px' : height }"
+                 :class="{ 'upload-disabled': disabled }"
+                 @click="showSelector = true">
+                <div class="arco-upload-picture-card">
+                    <div class="arco-upload-picture-card-text">
+                        <icon-folder />
+                        <div style="font-weight: 600;font-size: 12px;">选择图片</div>
                     </div>
                 </div>
-            </template>
-        </a-upload>
-    </a-space>
+            </div>
+        </div>
+        <!-- 图片预览模态框 -->
+        <a-image-preview  v-model:visible="previewVisible" :src="file?.url && handleUrl(file.url)" />
+        <!-- 附件选择器 -->
+        <affix-selector
+            v-model:visible="showSelector"
+            :multiple="false"
+            @confirm="handleAffixSelect"
+            @close="handleSelectorClose"
+        />
+    </div>
 </template>
 
 <script setup lang="ts">
 import { ref, watch } from 'vue';
-import { IconEdit, IconPlus, IconDelete } from '@arco-design/web-vue/es/icon';
+import { IconEdit, IconPlus, IconDelete, IconFolder , IconEye} from '@arco-design/web-vue/es/icon';
 import { uploadAffixAPI } from '@/api/file';
 import { Message } from '@arco-design/web-vue';
 import { handleUrl } from "@/utils/app";
+import AffixSelector from './affix-selector.vue';
 // 定义组件属性
 const props = defineProps({
     modelValue: {
@@ -84,6 +109,14 @@ const emit = defineEmits(['update:modelValue', 'change', 'success', 'error']);
 // 文件状态
 const file = ref<any>(null);
 const fileList = ref<any[]>([]);
+const showSelector = ref(false);
+
+const previewVisible = ref(false);
+// 预览
+const handlePreview = ()=> {
+    previewVisible.value = true;
+}
+
 
 // 监听图片URL变化
 watch(() => props.modelValue, (newUrl) => {
@@ -169,13 +202,41 @@ const handleRemove = () => {
     emit('change', null);
     Message.success('删除成功');
 };
+
+// 处理附件选择
+const handleAffixSelect = (selectedUrl: string) => {
+    file.value = {
+        url: selectedUrl,
+        status: 'done'
+    };
+    fileList.value = [file.value];
+    emit('update:modelValue', selectedUrl);
+    emit('change', file.value);
+    Message.success('选择图片成功');
+};
+
+// 处理选择器关闭
+const handleSelectorClose = () => {
+    showSelector.value = false;
+};
 </script>
 
 <style scoped>
+.image-upload {
+    width: 100%;
+}
+
+.upload-container {
+    display: flex;
+    gap: 12px;
+    align-items: stretch;
+}
+
 .arco-upload-list-picture {
     position: relative;
     overflow: hidden;
     border-radius: 4px;
+    flex-shrink: 0;
 }
 
 .arco-upload-list-picture img {
@@ -208,16 +269,15 @@ const handleRemove = () => {
     opacity: 1;
 }
 
-.arco-upload-picture-card {
-    border: 1px dashed var(--color-border-2);
+.select-button {
     border-radius: 4px;
-    background-color: var(--color-fill-2);
-    text-align: center;
     cursor: pointer;
     transition: all 0.2s;
+    flex-shrink: 0;
+    margin-top: 12px;
 }
 
-.arco-upload-picture-card:hover:not(.upload-disabled) {
+.select-button:hover:not(.upload-disabled) {
     border-color: var(--color-primary);
     background-color: var(--color-primary-light-1);
 }
@@ -232,11 +292,32 @@ const handleRemove = () => {
     background-color: var(--color-fill-2);
 }
 
+.arco-upload-picture-card {
+    border: 1px dashed var(--color-border-2);
+    border-radius: 4px;
+    background-color: var(--color-fill-2);
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.2s;
+    width: 100%;
+    height: 100%;
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
 .arco-upload-picture-card-text {
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
     color: var(--color-text-2);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+}
+
+.arco-upload-picture-card:hover:not(.upload-disabled .arco-upload-picture-card) {
+    border-color: var(--color-primary);
+    background-color: var(--color-primary-light-1);
 }
 </style>
