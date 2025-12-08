@@ -37,7 +37,9 @@
             <a-descriptions :column="1" size="small" :bordered="false">
               <a-descriptions-item label="版本">{{ plugin.version }}</a-descriptions-item>
               <a-descriptions-item label="作者">{{ plugin.author }}</a-descriptions-item>
-              <a-descriptions-item label="邮箱">{{ plugin.email }}</a-descriptions-item>
+              <a-descriptions-item label="描述">
+               {{ truncateString(plugin.description, 18) }}
+              </a-descriptions-item>
             </a-descriptions>
           </a-card>
         </a-col>
@@ -118,6 +120,7 @@ import { ref,  onMounted, computed } from 'vue'
 import { getPluginsExportAPI, exportPluginAPI, deletePluginAPI, type PluginExport } from '@/api/pluginsmanager'
 import useGlobalProperties from '@/hooks/useGlobalProperties'
 import { useDevicesSize } from '@/hooks/useDevicesSize'
+import { truncateString } from '@/utils/common-tools'
 import PluginImportModal from './components/PluginImportModal.vue'
 
 const { isMobile } = useDevicesSize()
@@ -261,6 +264,7 @@ onMounted(() => {
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+
 
 :deep(.arco-card) {
   cursor: pointer;
